@@ -199,3 +199,10 @@ label {
 h2 {
   color: #2800FF;
 }
+
+.song {
+  display:block;
+  position:absolute;
+  font-size: 1.2em;
+  background-color: white;
+}

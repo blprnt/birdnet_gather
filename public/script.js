@@ -1,63 +1,56 @@
-/*
 
-This is an example of using p5.js to get data from the eBird API.
+let songMap = {};
+let ipMap = {};
 
-Code for communicating with the API is in the server.js file.
-
-This program uses a proxy which is found at:
-
-https://btb-ebird.glitch.me/history
-
-(We can shorten this to /history)
-
-And can be called with
-
-https://btb-ebird.glitch.me/history?loc={{location}}&date={{date}}
-
-The location is either a code for a location or a region. 
-Date is in yyyy/MM/dd format.
-
-The easiest way to find codes for regions is here:
-
-https://ebird.org/explore
-
-  If I search for Kings county, I get this url:
-
-  https://ebird.org/region/US-NY-047?yr=all
-
-  The code for Kings is US-NY-047.
-
-And for hotspots:
-
-https://ebird.org/hotspots
-
-  If I search for Brooklyn Bridge Park and click 'view details' I get this url:
-
-  https://ebird.org/hotspot/L1902982
-  
-  The code for Brookyln Bridge park is L1902982
-
-
-Note that using large regions will result in large sets of results!
-*/
-let loc = 'L1902982';
+let songs = [];
+let ips = [];
 
 function setup() {
-  //Make a canvas object that takes up the whole window.
-  createCanvas(displayWidth, displayHeight);
-  //Make it white
-  background(255);
-  //load some birds
-  let url = '/history?loc=' + loc + '&date=2024/2/1';
-  loadJSON(url, onBirds);
-  
+  getBirds();
 }
 
 function draw() {
-  
+  //YYYY-MM-DDTHH:mm:ss.sssZ
+  let now = new Date();
+  songs.forEach(song => {
+    let m = now.getMonth() + 1;
+    let fm = ("0" + m).slice(-2);
+    let ds = (1900 + now.getYear()) + "-" + fm + "-" + now.getDate() + "T" + song.time;
+    let sTime = new Date(ds);
+
+    let elapsed = (now.getTime() - sTime.getTime()) / 60000;
+
+    song.el.position(song.el.position().x, map(elapsed, 0, 100, 50, windowHeight));
+
+  });
+
 }
 
-function onBirds(_data) {
-  //Spit out the resulting data into the console.
-  console.log(_data);
+function addSong(_bird) {
+  let b = createDiv(_bird.name);
+  b.class("song");
+  b.position(random(windowWidth), random(windowHeight));
+  _bird.el = b;
+  songs.push(_bird);
 }
+
+async function getBirds() {
+  const response = await fetch("/birds");
+  const birds = await response.json();
+  
+  birds.forEach(bird => {
+    //have we seen the node before?
+    if (!ipMap[bird.node]) {
+      ipMap[bird.node] = true;
+      ips.push(bird.node);
+    }
+
+    //have we seen this song before?
+    if (!songMap[bird.url]) {
+      songMap[bird.url] = true;
+      addSong(bird);
+    }
+  });
+}
+
+setInterval(getBirds, 10000);
